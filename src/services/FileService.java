@@ -131,7 +131,10 @@ public class FileService {
 				createPassingGoogleXml(languagesFolder, file);
 			} else {
 				// 앞에 경로 삭제(상대경로 취득)
-				relativePath = selectFile.getPath().replace(languagesFolder.getPath() + "\\", "");
+				relativePath = selectFile.getPath().replace(languagesFolder.getPath(), "");
+				if(relativePath.indexOf("\\") == 0 ) {
+					relativePath = relativePath.substring(1);
+				}
 				relativePath = "[korean.passing::" + relativePath.replaceAll("\\\\", ".") + "."
 						+ file.getName().replace(".xml", "") + "]\n";
 				googleXmlText.append(relativePath);
