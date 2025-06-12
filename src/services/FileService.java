@@ -224,6 +224,7 @@ public class FileService {
 			bufferedWriter = new BufferedWriter(new FileWriter(tmpFile));
 			//2025-06-13 .description> 이후에는 공백은 존재하면 안됨
 			parssingText.replaceAll(".description> ", ".description>");
+			parssingText.replaceAll(" </", "</");
 			bufferedWriter.write(parssingText);
 			bufferedWriter.flush();
 			bufferedWriter.close();
