@@ -139,9 +139,7 @@ public class FileService {
 				if(relativePath.indexOf("\\") == 0 ) {
 					relativePath = relativePath.substring(1);
 				}
-				System.out.println(relativePath);
-				relativePath = "[korean.passing::" + relativePath.replaceAll("\\\\", ".") + "."
-						+ file.getName().replace(".xml", "") + "]\n";
+				relativePath = "[korean.passing::" + relativePath + "\\" + file.getName().replace(".xml", "") + "]\n";
 				googleXmlText.append(relativePath);
 				bufferedReader = new BufferedReader(new FileReader(file));
 				while ((line = bufferedReader.readLine()) != null) {
@@ -155,7 +153,7 @@ public class FileService {
 
 	private void createGoogleXml(File languagesFolder) throws IOException {
 		BufferedWriter bufferedWriter = new BufferedWriter(
-				new FileWriter(new File(languagesFolder.getPath() + "\\google_orginal.xml")));
+				new FileWriter(new File(languagesFolder.getPath() + "\\google_original.xml")));
 		bufferedWriter.write(googleXmlText.toString());
 		bufferedWriter.flush();
 		bufferedWriter.close();
@@ -174,11 +172,14 @@ public class FileService {
 		// 파일 전체 텍스트
 		String fileText = "";
 		String parssingText = "";
+		String fullPath = "";
+		String folderPath = "";
 		String filePath = "";
 		// 읽은 파일을 임시로 받을 버퍼
 		StringBuffer readText = new StringBuffer();
 		File xmlFile = new File(xmlFilePath);
 		// xml에서 분리된 정보를 파일로 바꾸기 위한 변수
+	
 		File tmpFile = null;
 		File languagesFolder = null;
 		BufferedReader bufferedReader = new BufferedReader(new FileReader(xmlFile));
@@ -195,31 +196,48 @@ public class FileService {
 		// 읽기까지 종료
 
 		while (true) {
-			
 			parssingText = fileText.substring(fileText.indexOf("[korean.passing::"),(fileText.indexOf("[/korean.passing::")));
 			matcher = pattern.matcher(parssingText);
 			while (matcher.find()) {
-				filePath = matcher.group(1); // 괄호 그룹의 첫 번째
+				fullPath = matcher.group(1); // 괄호 그룹의 첫 번째
 			}
-			parssingText = parssingText.replaceAll("\\[/?korean\\.passing::[^\\]]+\\]", "");
+			parssingText = parssingText.replaceAll("\\[/?korean\\.passing::[^\\]]+\\]\n", "");
 			// 아직은 xml만 있기 떄문에 xml로 강제 코딩
-			filePath = filePath.replace(".", "\\") + ".xml";
-		
-			
+			String[] tmp = fullPath.split("\\\\");
+			for(int c = 0 ; c < tmp.length ; c++) {
+				//파일명 처리
+				if(c == tmp.length -1) {
+					filePath = tmp[c] +  ".xml";
+				}else {
+					folderPath += tmp[c] + "\\";
+				}
+			}
+			tmpFile = new File(languagesFolder + "\\" + folderPath);
+			//폴더가 없는경우 생성
+			if(!tmpFile.isDirectory()) {
+				tmpFile.mkdirs();
+			}
+			tmpFile = null;
 			// 우선 태그를 닫는데까지 진행
 			fileText = fileText.substring(fileText.indexOf("[/korean.passing::"));
-			tmpFile = new File(languagesFolder + "\\" + filePath);
+			tmpFile = new File(languagesFolder + "\\" + folderPath + filePath);
 			bufferedWriter = new BufferedWriter(new FileWriter(tmpFile));
+			//2025-06-13 .description> 이후에는 공백은 존재하면 안됨
+			parssingText.replaceAll(".description> ", ".description>");
 			bufferedWriter.write(parssingText);
 			bufferedWriter.flush();
 			bufferedWriter.close();
-			//다음 파일이 있난 검수 없으면 종료
+			//다음 파일이 여부 검수 없으면 종료
+			fullPath = "";
+			folderPath = "";
+			filePath ="";
 			if(fileText.indexOf("[korean.passing::") == -1) {
 				break;
 			}
 			// 다음 태그까지 이동
 			fileText = fileText.substring(fileText.indexOf("[korean.passing::"));
 		}
+		bufferedReader.close();
 		System.out.println("변환이 종료 되었습니다.");
 	}
 

@@ -9,8 +9,8 @@ public class PassingService {
 		 * 내용을 추출을 위한 패턴
 		 */
 		Pattern defNamePattern = Pattern.compile("<defName>(.*?)</defName>", Pattern.DOTALL);
-		Pattern lableNamePattern = Pattern.compile("<label>(.*?)</label>",Pattern.DOTALL);
-		Pattern descriptionPattern = Pattern.compile("<description>(.*?)</description>",Pattern.DOTALL);
+		Pattern lableNamePattern = Pattern.compile("<label>(.*?)</label>", Pattern.DOTALL);
+		Pattern descriptionPattern = Pattern.compile("<description>(.*?)</description>", Pattern.DOTALL);
 		Matcher matcher = null;
 		String nextText = text;
 		String languageText = text;
@@ -28,7 +28,7 @@ public class PassingService {
 		int defnameIndex = 0, lableIndex, descriptionIndex;
 		int endDefnameIndex, endLableIndex, endDescriptionIndex;
 		while (true) {
-			// def name areaD:\SteamLibrary\steamapps\workshop\content\294100\3472275628\1.5\Defs
+			// def name
 			defnameIndex = getNextPointDefName(nextText);
 			if (defnameIndex == -1) {
 				break;
@@ -38,7 +38,6 @@ public class PassingService {
 			while (matcher.find()) {
 				defName = matcher.group(1); // 괄호 그룹의 첫 번째
 			}
-
 			nextText = nextText.substring(endDefnameIndex + "</defName>".length());
 			// lable area
 			lableIndex = getNextPointLable(nextText);
@@ -54,7 +53,6 @@ public class PassingService {
 				ParssingText += "\t<" + defName + ".label>";
 				ParssingText += lableName;
 				ParssingText += "</" + defName + ".label>\n";
-				nextText = nextText.substring(endLableIndex + "</label>".length());
 			}
 			// description area
 			descriptionIndex = getNextPointDescription(nextText);
@@ -66,29 +64,27 @@ public class PassingService {
 					descripton = matcher.group(1); // 괄호 그룹의 첫 번째
 				}
 
-				ParssingText += "\t" +"<" + defName + ".description>";
-				ParssingText += descripton ;
-				ParssingText +=  "</" + defName + ".description>\n";
-				nextText = nextText.substring(endDescriptionIndex + "</description>".length());
+				ParssingText += "\t" + "<" + defName + ".description>";
+				ParssingText += descripton;
+				ParssingText += "</" + defName + ".description>\n";
 			}
-
+			if(getNextPointDefName(nextText) != -1) {
+				nextText = nextText.substring(getNextPointDefName(nextText));
+			}
 		}
-		
-		
-		//기본 공통 설정이 없는경우 떄문에 언어설정에서 가져 와야 하는 경우
+
+		// 기본 공통 설정이 없는경우 떄문에 언어설정에서 가져 와야 하는 경우
 		/**
 		 * 햇갈리니 아래에서만 사용할 변수는 아래에 선언
 		 */
-		if(languageText.indexOf("<LanguageData>") != -1) {
+		if (languageText.indexOf("<LanguageData>") != -1) {
 			languageText = languageText.replaceAll("<!--[\\s\\S]*?-->", "");
 			int StartIndex = languageText.indexOf("<LanguageData>");
 			int endIndex = languageText.indexOf("</LanguageData>");
 			ParssingText += languageText.substring(StartIndex + "<LanguageData>".length(), endIndex);
-		};
-		
-		
-		
-		
+		}
+		;
+
 		ParssingText += "</LanguageData>";
 		return ParssingText;
 	}
