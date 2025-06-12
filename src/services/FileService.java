@@ -71,7 +71,7 @@ public class FileService {
 				bufferedReader = new BufferedReader(fileReader);
 				// file read
 				while ((line = bufferedReader.readLine()) != null) {
-					readText.append(line);
+					readText.append(line + "\n");
 				}
 				bufferedReader.close();
 				fileReader.close();
@@ -88,10 +88,14 @@ public class FileService {
 				 */
 				createFolderPath = "";
 				for (int c = 0; c < pathArray.length - 1; c++) {
+					//폴더에 s가 붙어있으면 제거
 					if (c == 0 && pathArray[0].length() - 1 == pathArray[0].lastIndexOf("s")) {
 						pathArray[0] = pathArray[0].substring(0, pathArray[0].length() - 1);
 					}
 					createFolderPath += pathArray[c];
+					if(c < pathArray.length -2) {
+						createFolderPath += "\\";
+					}
 				}
 
 				// file write
@@ -135,6 +139,7 @@ public class FileService {
 				if(relativePath.indexOf("\\") == 0 ) {
 					relativePath = relativePath.substring(1);
 				}
+				System.out.println(relativePath);
 				relativePath = "[korean.passing::" + relativePath.replaceAll("\\\\", ".") + "."
 						+ file.getName().replace(".xml", "") + "]\n";
 				googleXmlText.append(relativePath);

@@ -13,6 +13,7 @@ public class PassingService {
 		Pattern descriptionPattern = Pattern.compile("<description>(.*?)</description>",Pattern.DOTALL);
 		Matcher matcher = null;
 		String nextText = text;
+		String languageText = text;
 		// 번역을 위한 기본 내용
 		String ParssingText = "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\r\n" + "<LanguageData>\n";
 		/**
@@ -72,6 +73,22 @@ public class PassingService {
 			}
 
 		}
+		
+		
+		//기본 공통 설정이 없는경우 떄문에 언어설정에서 가져 와야 하는 경우
+		/**
+		 * 햇갈리니 아래에서만 사용할 변수는 아래에 선언
+		 */
+		if(languageText.indexOf("<LanguageData>") != -1) {
+			languageText = languageText.replaceAll("<!--[\\s\\S]*?-->", "");
+			int StartIndex = languageText.indexOf("<LanguageData>");
+			int endIndex = languageText.indexOf("</LanguageData>");
+			ParssingText += languageText.substring(StartIndex + "<LanguageData>".length(), endIndex);
+		};
+		
+		
+		
+		
 		ParssingText += "</LanguageData>";
 		return ParssingText;
 	}
