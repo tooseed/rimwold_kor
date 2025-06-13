@@ -8,15 +8,22 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import models.DefFileModel;
+import models.DefMasterModel;
+import models.DefXmlInfoModel;
 import rimwold_parsing.Main;
 
 public class FileService {
 	static String rootPath = "";
 	static StringBuffer googleXmlText = new StringBuffer();
+	static DefMasterModel defMasterModel = new DefMasterModel();
 
 	/**
 	 * 1번 옵션 파일 읽기 오리지널에서 파일 추출하는 파일 읽기
@@ -51,14 +58,17 @@ public class FileService {
 	 */
 	private void passingFile(File folder, File languagesFolder) throws IOException {
 		File[] files = folder.listFiles();
-		File createFolder = null;
-		File createFile = null;
+		Pattern pattern = null;
+		Matcher matcher = null;
 		StringBuffer readText = new StringBuffer();
+		String ParssingText = "";
 		String line = "";
+		String fullText = "";
 		FileReader fileReader = null;
 		BufferedReader bufferedReader = null;
 		FileWriter fileWriter = null;
-		PassingService passingService = new PassingService();
+		DefFileModel defXmlFileModel = null;
+		DefXmlInfoModel defXmlInfoModel = null;
 		String passingText = "";
 		String createFolderPath = "";
 		String[] pathArray;
@@ -77,42 +87,70 @@ public class FileService {
 				fileReader.close();
 				// file read end
 
-				// 상대 경로를 만들기 위한 로직
+				fullText = readText.toString();
+				// 원본에서 추출
+				if (readText.indexOf("<Defs>") != -1) {
+					pattern = Pattern.compile("<Defs>[\\s\\S]*?<\\/Defs");
+					matcher = pattern.matcher(fullText);
+					defXmlFileModel = new DefFileModel();
+					defMasterModel.getDefPathList().add(defXmlFileModel);
+					if (matcher.find()) {
+						ParssingText = matcher.group(1);
+					}
+					// 정규식 검사로 다음 태그가 없지 않는한 계속 검사
+					while (true) {
+						pattern = Pattern.compile("<(.*?)>");
+						matcher = pattern.matcher(passingText);
+						if (matcher.find()) {
+							// 마지막이 / 로 끝나거나 시작이 / 로 시작하면 제외
+							String tag = matcher.group(1);
+							String defName = "";
+							String lable = "";
+							String description = "";
+							String path = "";
+							if (tag.indexOf("/") != 1 && !tag.endsWith("/")) {
+								// 옵션이 붙어 있을경우 옵션 제거
+								path = tag.split(" ")[0];
+								//파일 리스트에 해당 패치에 대한 키값이 없으면 생성
+								//태그에 명시된 폴더 내용까지 파싱
+								if (!defXmlFileModel.getPathMap().containsKey(path)) {
+									defXmlFileModel.getPathMap().put(path, new ArrayList<DefXmlInfoModel>());
+								}
 
-				createFolderPath = file.getPath().replace(rootPath, "");
-				// 맨앞에 경로 \ 삭제
-				createFolderPath = createFolderPath.substring(1);
-				pathArray = createFolderPath.split("\\\\");
-				/**
-				 * 첫번쨰 영역은 s를 제거 마지막 부분은 파일이라 예외 처리
-				 */
-				createFolderPath = "";
-				for (int c = 0; c < pathArray.length - 1; c++) {
-					//폴더에 s가 붙어있으면 제거
-					if (c == 0 && pathArray[0].length() - 1 == pathArray[0].lastIndexOf("s")) {
-						pathArray[0] = pathArray[0].substring(0, pathArray[0].length() - 1);
+							}
+
+						} else {
+							// 더 어싱 검사 할 태그가 없다면
+							break;
+						}
+
 					}
-					createFolderPath += pathArray[c];
-					if(c < pathArray.length -2) {
-						createFolderPath += "\\";
-					}
+
 				}
 
-				// file write
-				createFolder = new File(languagesFolder + "\\" + createFolderPath);
-				if (!createFolder.isDirectory()) {
-					createFolder.mkdirs();
+				// 다른 언어 번역 일경우
+				if (fullText.indexOf("<LanguageData>") != -1) {
+					fullText = fullText.replaceAll("<!--[\\s\\S]*?-->", "");
+					int StartIndex = fullText.indexOf("<LanguageData>");
+					int endIndex = fullText.indexOf("</LanguageData>");
+					ParssingText += fullText.substring(StartIndex + "<LanguageData>".length(), endIndex);
+					ParssingText += "</LanguageData>";
 				}
-				// 실제 xml 파일 제작 (pathArray 마지막 영역에는 반드시 파일이 들어있다)
-				createFile = new File(createFolder.getPath() + "\\" + pathArray[pathArray.length - 1]);
-				fileWriter = new FileWriter(createFile);
-				passingText = passingService.parssing(readText.toString());
-				fileWriter.append(passingText);
-				fileWriter.flush();
-				fileWriter.close();
-				// 버퍼 초기화
-				readText.setLength(0);
-				passingText = "";
+
+//				// file write
+//				createFolder = new File(languagesFolder + "\\" + createFolderPath);
+//				if (!createFolder.isDirectory()) {
+//					createFolder.mkdirs();
+//				}
+//				// 실제 xml 파일 제작 (pathArray 마지막 영역에는 반드시 파일이 들어있다)
+//				createFile = new File(createFolder.getPath() + "\\" + pathArray[pathArray.length - 1]);
+//				fileWriter = new FileWriter(createFile);
+//				fileWriter.append(passingText);
+//				fileWriter.flush();
+//				fileWriter.close();
+//				// 버퍼 초기화
+//				readText.setLength(0);
+//				passingText = "";
 			}
 		}
 	}
@@ -136,7 +174,7 @@ public class FileService {
 			} else {
 				// 앞에 경로 삭제(상대경로 취득)
 				relativePath = selectFile.getPath().replace(languagesFolder.getPath(), "");
-				if(relativePath.indexOf("\\") == 0 ) {
+				if (relativePath.indexOf("\\") == 0) {
 					relativePath = relativePath.substring(1);
 				}
 				relativePath = "[korean.passing::" + relativePath + "\\" + file.getName().replace(".xml", "") + "]\n";
@@ -179,7 +217,7 @@ public class FileService {
 		StringBuffer readText = new StringBuffer();
 		File xmlFile = new File(xmlFilePath);
 		// xml에서 분리된 정보를 파일로 바꾸기 위한 변수
-	
+
 		File tmpFile = null;
 		File languagesFolder = null;
 		BufferedReader bufferedReader = new BufferedReader(new FileReader(xmlFile));
@@ -196,7 +234,8 @@ public class FileService {
 		// 읽기까지 종료
 
 		while (true) {
-			parssingText = fileText.substring(fileText.indexOf("[korean.passing::"),(fileText.indexOf("[/korean.passing::")));
+			parssingText = fileText.substring(fileText.indexOf("[korean.passing::"),
+					(fileText.indexOf("[/korean.passing::")));
 			matcher = pattern.matcher(parssingText);
 			while (matcher.find()) {
 				fullPath = matcher.group(1); // 괄호 그룹의 첫 번째
@@ -204,17 +243,17 @@ public class FileService {
 			parssingText = parssingText.replaceAll("\\[/?korean\\.passing::[^\\]]+\\]\n", "");
 			// 아직은 xml만 있기 떄문에 xml로 강제 코딩
 			String[] tmp = fullPath.split("\\\\");
-			for(int c = 0 ; c < tmp.length ; c++) {
-				//파일명 처리
-				if(c == tmp.length -1) {
-					filePath = tmp[c] +  ".xml";
-				}else {
+			for (int c = 0; c < tmp.length; c++) {
+				// 파일명 처리
+				if (c == tmp.length - 1) {
+					filePath = tmp[c] + ".xml";
+				} else {
 					folderPath += tmp[c] + "\\";
 				}
 			}
 			tmpFile = new File(languagesFolder + "\\" + folderPath);
-			//폴더가 없는경우 생성
-			if(!tmpFile.isDirectory()) {
+			// 폴더가 없는경우 생성
+			if (!tmpFile.isDirectory()) {
 				tmpFile.mkdirs();
 			}
 			tmpFile = null;
@@ -222,17 +261,17 @@ public class FileService {
 			fileText = fileText.substring(fileText.indexOf("[/korean.passing::"));
 			tmpFile = new File(languagesFolder + "\\" + folderPath + filePath);
 			bufferedWriter = new BufferedWriter(new FileWriter(tmpFile));
-			//2025-06-13 .description> 이후에는 공백은 존재하면 안됨
-			parssingText.replaceAll(".description> ", ".description>");
-			parssingText.replaceAll(" </", "</");
+			// 2025-06-13 .description> 이후에는 공백은 존재하면 안됨
+			parssingText = parssingText.replaceAll("(<[^>]+>)\\s+", "$1");
+			parssingText = parssingText.replaceAll("\\s+(</[^>]+>)", "$1");
 			bufferedWriter.write(parssingText);
 			bufferedWriter.flush();
 			bufferedWriter.close();
-			//다음 파일이 여부 검수 없으면 종료
+			// 다음 파일이 여부 검수 없으면 종료
 			fullPath = "";
 			folderPath = "";
-			filePath ="";
-			if(fileText.indexOf("[korean.passing::") == -1) {
+			filePath = "";
+			if (fileText.indexOf("[korean.passing::") == -1) {
 				break;
 			}
 			// 다음 태그까지 이동

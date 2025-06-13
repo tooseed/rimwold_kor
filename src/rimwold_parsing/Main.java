@@ -11,6 +11,10 @@ public class Main {
 	static Scanner scanner = new Scanner(System.in);
 
 	public static void main(String[] args) throws Exception {
+//		String test = "<DMSAC_AntitankTeam_2.description>  대량의 대전차포를 탑재한 대전차 기동 전투 부대 미사일  </DMSAC_AntitankTeam_2.description>";
+//		test = test.replaceAll("(<[^>]+>)\\s+", "$1");
+//		test= test.replaceAll("\\s+(</[^>]+>)", "$1");
+//		System.out.println(test);
 		OptionService optionService = new OptionService();
 		PathService pathService = new PathService();
 		FileService fIleService = new FileService();
